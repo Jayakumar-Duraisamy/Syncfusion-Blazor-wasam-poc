@@ -1,0 +1,121 @@
+﻿@page "/datagrid-325630"
+
+@using Syncfusion.Blazor.Cards
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+
+@inject IJSRuntime JSRuntime
+
+<p>In this sample, you can get the record details and navigate to them by searching the Customer ID in the below text box.</p>
+
+<div style="width: 230px;">
+    <SfTextBox Placeholder="Enter a Customer ID" OnChange="OnSearchInput" FloatLabelType="FloatLabelType.Always" ></SfTextBox>
+</div>
+
+@*@if (SearchedRecord != null)
+    {
+        <SfCard ID="Card" Orientation="CardOrientation.Vertical">
+            <CardHeader Title="Grid Record Details" />
+            <CardContent>
+                <span>OrderID : @SearchedRecord.OrderID</span><br />
+                <span>CustomerID : @SearchedRecord.CustomerID</span><br />
+                <span>ShipCountry : @SearchedRecord.ShipCountry</span><br />
+                <span>ShipCity : @SearchedRecord.ShipCity</span><br />
+            </CardContent>
+            <CardFooter>
+                <CardFooterContent>
+                    <SfButton @onclick="NavigateToRecord" CssClass="e-btn e-outline e-primary">Navigate To Record</SfButton>
+                </CardFooterContent>
+            </CardFooter>
+        </SfCard>
+    }*@
+
+@if (SearchedRecord != null) {
+<SfDialog Height="230" Width="400px" Target="#Grid" ShowCloseIcon="false" @bind-Visible="DialogVisibility">
+    <DialogTemplates>        
+        <Header>            
+            <span>Grid Record Details</span>            
+        </Header>        
+        <Content>
+            <span>OrderID : @SearchedRecord.OrderID</span><br />
+            <span>CustomerID : @SearchedRecord.CustomerID</span><br />
+            <span>ShipCountry : @SearchedRecord.ShipCountry</span><br />
+            <span>ShipCity : @SearchedRecord.ShipCity</span><br />
+        </Content>
+        <FooterTemplate>
+            <SfButton @onclick="NavigateToRecord" CssClass="e-btn e-outline e-primary">Navigate To Record</SfButton>
+        </FooterTemplate>
+    </DialogTemplates>
+</SfDialog>
+}
+<SfGrid ID="Grid" @ref="Grid" DataSource="@GridData" Height="400" RowHeight="GridRowHeight" EnableVirtualization="true">
+    <GridColumns>
+        <GridColumn Field=@nameof(Order.OrderID) HeaderText="Order ID" IsPrimaryKey="true" Width="150"></GridColumn>
+        <GridColumn Field=@nameof(Order.CustomerID) HeaderText="Customer ID" Width="150"></GridColumn>
+        <GridColumn Field=@nameof(Order.ShipCountry) HeaderText="Ship Country" Width="150"></GridColumn>
+        <GridColumn Field=@nameof(Order.ShipCity) HeaderText="Ship City" Width="150"></GridColumn>
+    </GridColumns>
+</SfGrid>
+
+@code{
+    SfGrid<Order> Grid { get; set; }
+    Order SearchedRecord { get; set; }
+    bool DialogVisibility { get; set; }
+    int SearchedIndex { get; set; }
+    double GridRowHeight { get; set; } = 37;
+    public void OnSearchInput(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        //The below code is to find a record searched in CustomerID, ShipCountry, ShipCity columns
+
+        //foreach (var Record in GridData)
+        //{
+        //    var properties = Record.GetType().GetProperties();
+        //    foreach (var prop in properties)
+        //    {
+        //        var prop1 = Record.GetType().GetProperty(prop.Name);
+        //        if (prop1.GetValue(Record, null).Equals(args.Value))
+        //        {
+        //            SearchedRecord = Record;
+        //            SearchedIndex = GridData.FindIndex(item => item == Record);
+        //            break;
+        //        }
+        //    }
+        //}
+
+        //The below code is to find a record searched in CustomerID column
+        SearchedRecord = GridData.Where(data => data.CustomerID == (string)args.Value).FirstOrDefault();
+        SearchedIndex = GridData.FindIndex(item => item == SearchedRecord);
+        DialogVisibility = true;
+    }
+
+    public async Task NavigateToRecord()
+    {
+        DialogVisibility = false;
+        await JSRuntime.InvokeAsync<object>("scroll", SearchedIndex, GridRowHeight);
+        await Task.Delay(500);
+        await Grid?.SelectRow(SearchedIndex);
+    }
+
+    public List<Order> GridData { get; set; }
+    protected override void OnInitialized()
+    {
+        GridData = Enumerable.Range(1, 1000).Select(x => new Order()
+        {
+            OrderID = 1000 + x,
+            CustomerID = "customer" + x,
+            ShipCountry = "country" + x,
+            ShipCity = "city" + x
+        }).ToList();
+    }
+
+    public class Order
+    {
+        public int? OrderID { get; set; }
+        public string CustomerID { get; set; }
+        public string ShipCountry { get; set; }
+        public string ShipCity { get; set; }
+    }
+}

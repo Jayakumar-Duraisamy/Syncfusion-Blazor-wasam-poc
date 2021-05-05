@@ -1,0 +1,249 @@
+@page "/ganttchart"
+
+<table class="table">
+    <tbody>
+        <tr>
+            <th scope="col"><h6>Please Enter the Level and Click Collapse/Expand  Button</h6></th>
+        </tr>
+        <tr>
+            <td>
+                <input type="number" @bind-value="@Level">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button type="button" class="btn btn-primary" @onclick="CollapseAtLevel">Collapse</button>
+                <button type="button" class="btn btn-primary" @onclick="ExpandAtLevel">Expand</button>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col"><h6>To Show/Hide Gantt Pane</h6></th>
+        </tr>
+        <tr>
+            <td>
+                <button type="button" class="btn btn-primary" @onclick="ShowChart">ShowGanttPane</button>
+                <button type="button" class="btn btn-primary" @onclick="HideChart">HideGanttPane</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+
+<SfGantt DataSource="@TaskCollection" Width="1000px" @ref="Gantt" AllowRowDragAndDrop="true" HighlightWeekends="true" ContextMenuItems="@(new List<object>() { "TaskInformation","Indent","Outdent","DeleteTask"})" AllowReordering="true" ShowColumnMenu="true">
+    <GanttTaskFields Id="TaskId" Name="TaskName" StartDate="StartDate" EndDate="EndDate" Duration="Duration" ParentID="ParentId" Dependency="Predecessor"></GanttTaskFields>
+    <GanttColumns>
+        <GanttColumn Field="TaskId"></GanttColumn>
+        <GanttColumn Field="TaskName"></GanttColumn>
+        <GanttColumn Field="StartDate"></GanttColumn>
+        <GanttColumn Field="Duration"></GanttColumn>
+        <GanttColumn Field="Predecessor" HeaderText="Predecessor"></GanttColumn>
+    </GanttColumns>
+    <GanttTimelineSettings TimelineUnitSize=100>
+        <GanttTopTierSettings Unit="TimelineViewMode.Month" Format="MMMM">
+        </GanttTopTierSettings>
+        <GanttBottomTierSettings Unit="TimelineViewMode.Week">
+            <FormatterTemplate>
+                @{
+                    @if (context.Tier == "bottom")
+                    {
+                        <div> @this.Formatter((context.Date)) </div>
+                    }
+                }
+            </FormatterTemplate>
+        </GanttBottomTierSettings>
+    </GanttTimelineSettings>
+    <GanttEditSettings AllowEditing="true" AllowAdding="true" AllowDeleting="true" AllowTaskbarEditing="true"></GanttEditSettings>
+    <GanttSelectionSettings Mode="Syncfusion.Blazor.Grids.SelectionMode.Both" Type="Syncfusion.Blazor.Grids.SelectionType.Multiple"></GanttSelectionSettings>
+    <GanttTemplates TValue="TaskData">
+        <ParentTaskbarTemplate>
+            <div class="e-gantt-parent-taskbar e-custom-parent" style="height:22px;border-radius:5px;text-overflow:ellipsis;">
+                <span class="e-task-label" style="color:black;top:18px;font-size:9px;overflow: hidden;white-space: nowrap;">@((context as TaskData).TaskName)</span>
+            </div>
+        </ParentTaskbarTemplate>
+        <TaskbarTemplate>
+                    <div  class="e-gantt-child-taskbar e-custom-moments" style="height:22px;border-radius:5px;">
+                        <span class="e-task-label" style="color:black;top:18px;font-size:12px;overflow: hidden;white-space: nowrap;">@((context as TaskData).TaskName)</span>
+                    </div>
+        </TaskbarTemplate>
+    </GanttTemplates>
+    <GanttEvents QueryCellInfo="QueryCellInfo" QueryChartRowInfo="QueryChartRowInfo" TValue="TaskData"></GanttEvents>
+</SfGantt>
+
+<style>
+    .e-custom-parent {
+        height: 11px !important;
+        background-color: #FFFFFF;
+    }
+
+    .e-custom-moments {
+        background-color: #60A3D9;
+    }
+
+    .intro {
+        background-color: #E8EEF1;
+    }
+
+    .e-gantt .e-right-resize-gripper::before {
+        content: '\e80b'
+    }
+
+    .e-gantt .e-left-resize-gripper::before {
+        content: '\e80b'
+    }
+    .e-info-icon::before {
+        content: '\e729';
+    }
+</style>
+
+@code{
+    public SfGantt<TaskData> Gantt;
+    public List<TaskData> TaskCollection { get; set; }
+    public double Level { get; set; }
+    protected override void OnInitialized()
+    {
+        this.TaskCollection = GetTaskCollection();
+
+    }
+    public class TaskData
+    {
+        public int TaskId { get; set; }
+        public string TaskName { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Duration { get; set; }
+        public int Progress { get; set; }
+        public string Predecessor { get; set; }
+        public int? ParentId { get; set; }
+    }
+    public void CollapseAtLevel()
+    {
+        this.Gantt.CollapseAtLevel(Level);
+    }
+    public void ExpandAtLevel()
+    {
+        this.Gantt.ExpandAtLevel(Level);
+    }
+    public void ShowChart()
+    {
+        this.Gantt.SetSplitterPosition(Syncfusion.Blazor.Gantt.SplitterView.Default);
+    }
+    public void HideChart()
+    {
+        this.Gantt.SetSplitterPosition(Syncfusion.Blazor.Gantt.SplitterView.Grid);
+    }
+    public string Formatter(DateTime? date)
+    {
+        DateTime dateTime = (DateTime)(date);
+        string bottomString = dateTime.Day + "-" + (dateTime.Day + 6);
+        return bottomString;
+    }
+    public void QueryCellInfo(Syncfusion.Blazor.Grids.QueryCellInfoEventArgs<TaskData> args)
+    {
+        String[] s1 = new String[1] { "intro" };
+        args.Cell.AddClass(s1);
+    }
+    public void QueryChartRowInfo(Syncfusion.Blazor.Gantt.QueryChartRowInfoEventArgs<TaskData> args)
+    {
+        String[] s1 = new String[1] { "intro" };
+        args.Row.AddClass(s1);
+    }
+    public static List<TaskData> GetTaskCollection()
+    {
+        List<TaskData> Tasks = new List<TaskData>() {
+
+    new TaskData() {
+        TaskId = 1,
+        TaskName = "Project initiation",
+        StartDate = new DateTime(2019, 04, 02),
+        EndDate = new DateTime(2019, 04, 21)
+    },
+    new TaskData() {
+        TaskId = 2,
+        TaskName = "Identify Site location",
+        StartDate = new DateTime(2019, 04, 02),
+        Duration = "10",
+        Progress = 30,
+        ParentId = 1
+    },
+    new TaskData() {
+        TaskId = 3,
+        TaskName = "Perform soil test",
+        StartDate = new DateTime(2019, 04, 02),
+        Duration = "4",
+        Progress = 40,
+        ParentId = 1,
+        Predecessor = "2"
+    },
+    new TaskData() {
+        TaskId = 4,
+        TaskName = "Soil test approval",
+        StartDate = new DateTime(2019, 04, 02),
+        Duration = "3",
+        Progress = 30,
+        ParentId = 1,
+        Predecessor = "3"
+    },
+    new TaskData() {
+        TaskId = 5,
+        TaskName = "Project estimation",
+        StartDate = new DateTime(2019, 04, 02),
+        EndDate = new DateTime(2019, 04, 21)
+    },
+    new TaskData() {
+        TaskId = 6,
+        TaskName = "Develop floor plan for estimation",
+        StartDate = new DateTime(2019, 04, 04),
+        Duration = "3",
+        Progress = 30,
+        ParentId = 5,
+    },
+    new TaskData() {
+        TaskId = 7,
+        TaskName = "List materials",
+        StartDate = new DateTime(2019, 04, 04),
+        Duration = "13",
+        Progress = 40,
+        ParentId = 5,
+    },
+    new TaskData() {
+        TaskId = 8,
+        TaskName = "Estimation approval",
+        StartDate = new DateTime(2019, 04, 04),
+        Duration = "25",
+        Progress = 30,
+        ParentId = 5,
+    },
+     new TaskData() {
+        TaskId = 9,
+        TaskName = "Demand Analysis",
+        StartDate = new DateTime(2019, 04, 02),
+        EndDate = new DateTime(2019, 04, 21)
+    },
+    new TaskData() {
+        TaskId = 10,
+        TaskName = "Customer Strength",
+        StartDate = new DateTime(2019, 04, 04),
+        Duration = "3",
+        Progress = 30,
+        ParentId = 9,
+    },
+    new TaskData() {
+        TaskId = 11,
+        TaskName = "Competitor analysis",
+        StartDate = new DateTime(2019, 04, 04),
+        Duration = "13",
+        Progress = 40,
+        ParentId = 10,
+    },
+    new TaskData() {
+        TaskId = 12,
+        TaskName = "Product Strength Analysis",
+        StartDate = new DateTime(2019, 04, 04),
+        Duration = "25",
+        Progress = 30,
+        ParentId = 11,
+    }
+};
+        return Tasks;
+    }
+}

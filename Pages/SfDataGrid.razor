@@ -1,0 +1,211 @@
+﻿@page "/datagrid"
+    <h4>1. Row/Cell Duplication</h4>
+    It is not possible to perform Cell and Row duplication using the same Grid definition. Hence we have
+    used SfSwitch component to switch between Row Duplication(Cut/Copy/Paste) and Cell Duplication(selecting and draggin them below).
+    <br/>
+    <label>Row/ Cell Duplcaition</label>
+
+    <SfSwitch TChecked="bool" ValueChange="ValueChange" @bind-Checked="@isChecked"></SfSwitch>
+    <h4>If switch is enabled - Cut / Copy / Paste Entire rows </h4>
+
+    1. Ctrl + X - used the cut the selected records from Grid.
+    <br />
+    2. Ctlr + C - used to copy the select records from Grid.
+    <br />
+    3. Ctlr + V - used to paste the copied  / cutted records in the selected position.
+    <br />
+    4. Ctlr + D - used to duplicate a selected record.
+    <br />
+    <br />
+    <h4> If switch is disabled - Autofill (particular cell, range of cell can be duplicated by selecting and dragging below) </h4>
+    Particular cell or range of cells in single cell can be selected using mouse action. Once selected, click and drag the retangular box at bottom right border to duplicate the selected cells.
+    <br />
+    <br />
+    <h4>2. Adding a new record between two existing records</h4>
+    <label> Batch/Normal Editing</label>
+    <SfSwitch TChecked="bool" ValueChange="ValueChange" @bind-Checked="@isBatchEdit"></SfSwitch>
+    <SfButton @onclick="AddRecord" Content="Add Record at 4th position" Disabled="@isBatchEdit"></SfButton>
+    <p>
+        You can add a record at a specific index by using the button click.<br />
+        On clicking the button, a record will be added at the 4th position(Index starting from 0). For this, you have to enable Normal Editing in the below switch.<br />
+    </p>
+    <h4> If switch is enabled - Batch Editing is set to grid.</h4>
+    <h4> If switch is disabled - Normal Editing is set to grid.</h4>
+    <br />
+
+    <SfGrid @ref="Grid" DataSource="@Orders" @onkeydown="down" @onkeyup="up" EnableAutoFill="true" AllowSelection="true" Height="400" Toolbar="@(new List<string>() { "Add", "Update","Cancel" })">
+        @if (isChecked)
+        {
+            <GridEvents RowSelected="RowSelect" RowDeselected="RowDeselect" TValue="Order"></GridEvents>
+            <GridSelectionSettings Mode="SelectionMode.Row" Type="Syncfusion.Blazor.Grids.SelectionType.Multiple"></GridSelectionSettings>
+        }
+        else
+        {
+            <GridSelectionSettings CellSelectionMode="CellSelectionMode.Box" Mode="SelectionMode.Cell" Type="Syncfusion.Blazor.Grids.SelectionType.Multiple"></GridSelectionSettings>
+        }
+        @if (isBatchEdit)
+        {
+            <GridEditSettings AllowAdding="true" AllowDeleting="true" AllowEditing="true" Mode="Syncfusion.Blazor.Grids.EditMode.Batch"></GridEditSettings>
+        }
+        else
+        {
+            <GridEditSettings AllowAdding="true" AllowDeleting="true" AllowEditing="true" Mode="Syncfusion.Blazor.Grids.EditMode.Normal"></GridEditSettings>
+        }
+        <GridColumns>
+            <GridColumn Field=@nameof(Order.OrderID) HeaderText="Order ID" IsPrimaryKey="true" Visible="false" TextAlign="TextAlign.Right" Width="120"></GridColumn>
+            <GridColumn Field=@nameof(Order.CustomerID) HeaderText="Customer Name" Width="150"></GridColumn>
+            <GridColumn Field=@nameof(Order.OrderDate) HeaderText=" Order Date" Format="d" Type="ColumnType.Date" TextAlign="TextAlign.Right" Width="130"></GridColumn>
+            <GridColumn Field=@nameof(Order.ShipCity) HeaderText="Ship City" Width="100"></GridColumn>
+        </GridColumns>
+    </SfGrid>
+    <SfTextBox Placeholder="Paste the Records Here" @bind-Value="@TEXT" @onkeyup="up" Focus="onFocus" Width="100%"></SfTextBox>
+
+    @code{
+
+        public async Task AddRecord()
+        {
+            Order order = new Order()
+            {
+                OrderID = Count++,
+                CustomerID = "AddedCustomerID" + Count,
+                OrderDate = DateTime.Now,
+                ShipCity = "India"
+            };
+            await Grid.AddRecord(order, 4);
+        }
+        public async Task ValueChange(Syncfusion.Blazor.Buttons.ChangeEventArgs<bool> args)
+        {
+            await Task.Delay(500);
+            Grid.Refresh();
+        }
+        int Count { get; set; } = 4;
+        SfGrid<Order> Grid { get; set; }
+        private bool isChecked = true;
+        private bool isBatchEdit = true;
+        public List<Order> Orders { get; set; }
+        public SelectionMode GridSelection { get; set; } = SelectionMode.Row;
+        public List<Order> CopiedRecords { get; set; } = new List<Order>();
+        public List<Order> ClonedRecords { get; set; } = new List<Order>();
+        public Order SelectedRecords { get; set; }
+        public double SelectedIndex { get; set; }
+        public String TEXT { get; set; }
+        public void onFocus(FocusInEventArgs Args)
+        {
+            if (isChecked)
+            {
+                SelectedIndex = -1;
+            }
+        }
+        public void RowDeselect(RowDeselectEventArgs<Order> Args)
+        {
+
+            //remove the maintained value while deselecting the records
+            SelectedIndex = -1;
+            SelectedRecords = new Order();
+        }
+        public void RowSelect(RowSelectEventArgs<Order> Args)
+        {
+            SelectedRecords = Args.Data;
+            SelectedIndex = Args.RowIndex;
+        }
+        public async Task up(KeyboardEventArgs Args)
+        {
+            if (isChecked)
+            {
+                if (Args.CtrlKey && Args.Code == "KeyV")
+                {
+                    if (CopiedRecords.Count > 0 || ClonedRecords.Count > 0)
+                    {
+                        if (SelectedIndex > -1)
+                        {
+                            for (var i = CopiedRecords.Count; i > 0; i--)
+                            {
+                                Orders.Insert((int)SelectedIndex, CopiedRecords[i - 1]);
+                            }
+                            for (var i = ClonedRecords.Count; i > 0; i--)
+                            {
+                                Orders.Insert((int)SelectedIndex, ClonedRecords[i - 1]);
+                            }
+                        }
+                        else
+                        {
+                            foreach (var rec in CopiedRecords)
+                            {
+                                Orders.Insert((int)Orders.Count, rec);
+                            }
+                            foreach (var rec in ClonedRecords)
+                            {
+                                Orders.Insert((int)Orders.Count, rec);
+                            }
+                        }
+                    }
+                    // refresh the grid data.
+                    Grid.Refresh();
+                    await Grid.ClearSelection();
+                    CopiedRecords = new List<Order>();
+                    ClonedRecords = new List<Order>();
+                    TEXT = "";
+                }
+            }
+        }
+        public async Task down(KeyboardEventArgs Args)
+        {
+            if (isChecked)
+            {
+                if (Args.CtrlKey && (Args.Code == "KeyC" || Args.Code == "KeyX"))
+                {
+                    var selectedCount = await Grid.GetSelectedRowIndexes();
+                    if (selectedCount.Count > 0)
+                    {
+                        if (Args.Code == "KeyC")
+                        {
+                            CopiedRecords = await Grid.GetSelectedRecords();
+                        }
+                        else if (Args.Code == "KeyX")
+                        {
+                            ClonedRecords = await Grid.GetSelectedRecords();
+                            if (ClonedRecords.Count > 0)
+                            {
+                                foreach (var i in ClonedRecords)
+                                {
+                                    Orders.Remove(Orders.Where(x => x.OrderID == i.OrderID).FirstOrDefault());
+                                }
+                                Grid.Refresh();
+                            }
+                        }
+                    }
+                }
+                if (Args.Key == "Enter")
+                {
+                    //call add record method to insert the empty add row.
+                    await Grid.AddRecord();
+                }
+                if (Args.CtrlKey && Args.Code == "KeyD")
+                {
+                    //insert the duplicate record here
+                    Orders.Insert((int)SelectedIndex + 1, SelectedRecords);
+                    // refresh the grid data.
+                    Grid.Refresh();
+                }
+            }
+        }
+        protected override void OnInitialized()
+        {
+            Orders = Enumerable.Range(1, 10).Select(x => new Order()
+            {
+                OrderID = 1000 + x,
+                CustomerID = (new string[] { "ALFKI" + x.ToString(), "ANANTR" + x.ToString(), "ANTON" + x.ToString(), "BLONP" + x.ToString(), "BOLID" + x.ToString() })[new Random().Next(5)],
+                ShipCity = (new string[] { "Seattle", "Tacoma", "Redmond", "Kirkland", "London" })[new Random().Next(5)],
+                OrderDate = DateTime.Now.AddDays(-x),
+            }).ToList();
+        }
+
+        public class Order
+        {
+            public int? OrderID { get; set; }
+            public string CustomerID { get; set; }
+            public string ShipCity { get; set; }
+            public DateTime? OrderDate { get; set; }
+            public double? Freight { get; set; }
+        }
+    }
